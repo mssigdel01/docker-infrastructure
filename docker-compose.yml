@@ -1,0 +1,124 @@
+---
+version: '2'
+
+##################### Kafka Infrastructure - zookeeper, kafka, schema-registry, kafka-rest #############
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    ports:
+      - 2181:2181
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    extra_hosts:
+      - "moby:127.0.0.1"
+      - "localhost: 127.0.0.1"
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka-host
+    ports:
+      - 9092:9092
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://docker.for.mac.host.internal:9092
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 4
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    extra_hosts:
+      - "moby:127.0.0.1"
+      - "localhost: 127.0.0.1"
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:latest
+    hostname: sr-host
+    ports:
+      - 8081:8081
+    depends_on:
+      - zookeeper
+      - kafka
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: zookeeper:2181
+      SCHEMA_REGISTRY_HOST_NAME: sr-host
+      SCHEMA_REGISTRY_LISTENERS: http://sr-host:8081
+    extra_hosts:
+      - "moby:127.0.0.1"
+      - "localhost: 127.0.0.1"
+
+  kafka-rest:
+    image: confluentinc/cp-kafka-rest:latest
+    hostname: kr-host
+    ports:
+      - 29080:29080
+    depends_on:
+      - zookeeper
+      - kafka
+      - schema-registry
+    environment:
+      KAFKA_REST_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_REST_LISTENERS: http://kr-host:29080
+      KAFKA_REST_SCHEMA_REGISTRY_URL: http://sr-host:8081
+      KAFKA_REST_HOST_NAME: kr-host
+      KAFKA_REST_BOOTSTRAP_SERVERS: docker.for.mac.host.internal:9092
+    extra_hosts:
+      - "moby:127.0.0.1"
+      - "localhost: 127.0.0.1"
+
+################ End of Kafka Infrastructure #############
+
+
+##################### ElasticSearch - 6.2.0 #############
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.2.0
+    container_name: es01
+    environment:
+      - node.name=es01
+      - cluster.name=scan
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    extra_hosts:
+      - "moby:127.0.0.1"
+      - "localhost: 127.0.0.1"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata01:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+
+################ End of ElasticSearch Infrastructure  ##########
+
+##################### Redis #############
+  redis:
+    image: redis:4.0.5-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    hostname: redis
+    ports:
+      - 6379:6379
+    networks:
+      - redis-net
+    volumes:
+      - redis-data:/data
+    extra_hosts:
+      - "localhost: 127.0.0.1"
+
+
+################ End of Redis Infrastructure  ##########
+
+networks:
+  redis-net:
+
+volumes:
+  esdata01:
+    driver: local
+  redis-data:
+    driver: local
+
+
+
