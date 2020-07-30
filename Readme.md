@@ -20,6 +20,7 @@ Services: (With their exposed port)
         - Kafka : 9092
         - Schema Registry : 8081
         - Rest Kafka : 9080
+        - Kadmin : 7080  (http://localhost:7080/kadmin/)
     
     - ElasticSearchdoc
         - Transport Client : 9200
@@ -47,5 +48,3 @@ Validation:
     - `curl http://localhost:7080/kadmin/` [Kadmin validation]
     
     - `nc -z localhost 3306` [MySQL validation]
-    
-    - `curl http://localhost:9000` [Kadmin validation]
